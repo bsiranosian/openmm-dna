@@ -28,4 +28,4 @@ A simple processing pipeline can be found in src/process_simulated_structures.py
 The file data/example_simulation.npy contains an example ensemble of structures. There are some handy analysis and plotting functions in src/useful_3D.py and src/useful_plotting.py. 
 
 An example script to load the sample data and generate a figure can be found at src/example_analysis.py
-!(example_maps.png)
+![example contact maps](https://github.com/bsiranosian/openmm-dna/raw/master/example_maps.png)
