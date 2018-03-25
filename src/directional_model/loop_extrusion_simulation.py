@@ -9,6 +9,8 @@ import pyximport; pyximport.install(
 import matplotlib
 matplotlib.use("Agg")
 
+# OLD IMPORT CODE
+'''
 # import modules and get the location of my github repo
 # depending on the hostname
 hn = socket.gethostname()
@@ -25,7 +27,10 @@ else:
     supercontactSrc = '~/projects/supercontact/src/'
 sys.path.append(supercontactSrc)
 sys.path.append(supercontactSrc + 'directional_model')
-from flagshipNormLifetime_functions import get_forw_rev, do_polymer_simulation
+'''
+import openmmlib
+import polymerutils
+from loop_extrusion_functions import get_forw_rev, do_polymer_simulation
 
 
 def main():
@@ -156,14 +161,14 @@ def main():
                         dest='randomize_SMC',
                         default=False,
                         help='Fully randomize the positions of SMCs each simulation block.\
-        Should probably up timeStep along with this option.')
-    parser.add_argument('-timeStep',
-                        '--timeStep',
+        Should probably up time_step along with this option.')
+    parser.add_argument('-time_step',
+                        '--time_step',
                         required=False,
                         action='store',
-                        dest='timeStep',
+                        dest='time_step',
                         default=5000,
-                        help='Number of simulation timestep per block')
+                        help='Number of simulation time_step per block')
     parser.add_argument('-skip_start',
                         '--skip_start',
                         required=False,
@@ -192,7 +197,7 @@ def main():
     monomer_size = int(args.monomer_size)
     no_SMC = args.no_SMC
     randomize_SMC = args.randomize_SMC
-    timeStep = int(args.timeStep)
+    time_step = int(args.time_step)
     skip_start = int(args.skip_start)
     # done
 
@@ -226,7 +231,7 @@ def main():
     myend = 31322258
     forw, rev = get_forw_rev(
         input_ctcf, mu=mu, divide_logistic=divide_logistic,
-        extend_factor=extend_factor, doLogistic=not no_logistic,
+        extend_factor=extend_factor, do_logistic=not no_logistic,
         monomer_size=monomer_size, mychr=mychr, mystart=mystart, myend=myend)
     print('CTCF sites on forward: ' + str(len(forw[forw > 0])))
     print('CTCF sites on reverse: ' + str(len(rev[rev > 0])))
@@ -235,7 +240,7 @@ def main():
 
     # This actually does a polymer simulation
     do_polymer_simulation(
-        steps=timeStep, dens=0.2, stiff=2,
+        steps=time_step, dens=0.2, stiff=2,
         folder=outFolder, N=N, SEPARATION=SEPARATION, LIFETIME=LIFETIME,
         forw=forw, rev=rev, save_blocks=save_blocks, smc_steps=smc_steps,
         no_SMC=no_SMC, randomize_SMC=randomize_SMC,

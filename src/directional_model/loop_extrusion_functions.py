@@ -5,7 +5,8 @@ import numpy as np
 import pandas as pd
 import ctypes
 import multiprocessing as mp
-import pyximport; pyximport.install()
+import pyximport; pyximport.install(
+    setup_args={"include_dirs": np.get_include()})
 import polymerutils
 from polymerutils import scanBlocks
 from mirnylib.numutils import coarsegrain

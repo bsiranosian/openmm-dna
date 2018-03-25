@@ -7,7 +7,7 @@ Given a file defining CTCF sites and a specific genomeic region, you can generat
 If you are using a computer without a cpu, specify the ```--cpu_simulation``` flag. Setting the ```--skip_start``` argument to 1 will output 3D structures quickly for testing (won't skip 100 blocks of simulation to get conformations far away from the starting conditions). 
 
 ## Prerequisites
-[openmm-polymer](https://bitbucket.org/mirnylab/openmm-polymer/overview) and prereqs for that repository. _This is probably the hardest part. Getting the package and GPU support configured can take a while._
+[openmm-polymer](https://bitbucket.org/mirnylab/openmm-polymer/overview) and prereqs for that repository. _This is probably the hardest part. Getting the package and GPU support configured can take a while._ Installing openmm is best done with [conda](http://docs.openmm.org/7.2.0/userguide/application.html#installing-openmm) I've found. 
 
 
 ## Simulation of loop extrusion 
