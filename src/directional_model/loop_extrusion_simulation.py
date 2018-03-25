@@ -9,27 +9,8 @@ import pyximport; pyximport.install(
 import matplotlib
 matplotlib.use("Agg")
 
-# OLD IMPORT CODE
-'''
-# import modules and get the location of my github repo
-# depending on the hostname
-hn = socket.gethostname()
-if hn == 'aspire':
-    supercontactSrc = '/home/ben/projects/supercontact/src/'
-elif hn == 'BoettigerServer':
-    supercontactSrc = 'C:\\Users\\Ben\\projects\\supercontact\\src\\'
-elif (hn.startswith('sherlock') or
-      getenv('SHERLOCK') == '1' or getenv('SHERLOCK') == '2'):
-    supercontactSrc = '~/projects/supercontact/src/'
-else:
-    print('Warning: set location of supercontact \
-        repository src file in this script')
-    supercontactSrc = '~/projects/supercontact/src/'
-sys.path.append(supercontactSrc)
-sys.path.append(supercontactSrc + 'directional_model')
-'''
-import openmmlib
-import polymerutils
+# import openmmlib
+# import polymerutils
 from loop_extrusion_functions import get_forw_rev, do_polymer_simulation
 
 
