@@ -8,22 +8,26 @@ import multiprocessing as mp
 import pyximport; pyximport.install(
     setup_args={"include_dirs": np.get_include()})
 import polymerutils
-from polymerutils import scanBlocks
+from polymerutils import scanBlocks, grow_rw
 from mirnylib.numutils import coarsegrain
 from smcTranslocator import smcTranslocatorDirectional
+from openmmlib import Simulation
+import time
 
 
-# logistic function to transform fc to boundary score
 def logistic(x, mu=3):
+    """Return boundary scaled by logisitic function"""
     x[x == 0] = -99999999
     return 1 / (1 + np.exp(-(x - mu)))
 
 
 def tonumpyarray(mp_arr):
+    """Return np array of object (from Mirnylab)"""
     return np.frombuffer(mp_arr.get_obj())  # .reshape((N,N))
 
 
 def initModel(i, N, SEPARATION, LIFETIME, forw, rev):
+    """Return SMCTran model given parameters"""
     birthArray = np.zeros(N, dtype=np.double) + 0.1
     deathArray = np.zeros(N, dtype=np.double) + 1. / LIFETIME
     stallArrayLeft = forw
@@ -39,6 +43,7 @@ def initModel(i, N, SEPARATION, LIFETIME, forw, rev):
 
 
 def doSim(i, N, SEPARATION, LIFETIME, shared_arr, forw, rev):
+    """Do a block of simulation."""
     nparr = tonumpyarray(shared_arr)
     SMCTran = initModel(i, N, SEPARATION, LIFETIME, forw, rev)
 
@@ -63,10 +68,9 @@ def doSim(i, N, SEPARATION, LIFETIME, shared_arr, forw, rev):
 def get_forw_rev(ctcf_file, mu=3, divide_logistic=20,
                  extend_factor=0.10, do_logistic=True,
                  monomer_size=600, mychr=21, mystart=29372390, myend=31322258):
-
-    # using a CTCF file and other inputs,
-    # get scaled forw and rev array of stall sites
-    # for LEFs
+    """Return scaled forw and rev array of stall sites
+    Given a ctcf file and other parameters
+    """
 
     # set this to be sure no division takes place
     # when not doing logistic scaling
@@ -124,11 +128,15 @@ def get_forw_rev(ctcf_file, mu=3, divide_logistic=20,
 
     return(forw, rev)
 
-# takes in a file wth CTCF sites, returns extruder positioning arr and logarr
-
 
 def do_extruder_position(forw, rev, SEPARATION=200,
-                         LIFETIME=300, nSim=10, trim=0, binSize=0):
+                         LIFETIME=300, nsim=10, trim=0, bin_size=0):
+    """Return extuder positioning after nsim steps of simulation
+
+    returns:
+    logarr: log-transformed array of extruder positioning
+    """
+
     # number of monomers to simulate
     N = len(forw)
     shared_arr = mp.Array(ctypes.c_double, N**2)
@@ -140,7 +148,7 @@ def do_extruder_position(forw, rev, SEPARATION=200,
     # fmap(doSim, range(30), n = 1 )  # number of threads to use.
     # On a 20-core machine I use 20.
     [doSim(i, N, SEPARATION, LIFETIME, shared_arr, forw, rev)
-     for i in range(nSim)]
+     for i in range(nsim)]
 
     # trim before coarsegraining, if desired
     if trim > 0:
@@ -159,23 +167,20 @@ def do_extruder_position(forw, rev, SEPARATION=200,
         print('done trimming ' + str(arr.shape))
 
     # bin to a lower resolution if desired
-    if binSize > 0:
-        arr = coarsegrain(arr, binSize)
+    if bin_size > 0:
+        arr = coarsegrain(arr, bin_size)
 
     arr = np.clip(arr, 0, np.percentile(arr, 99.9))
     arr /= np.mean(np.sum(arr, axis=1))
     logarr = np.log(arr + 0.0001)
-    return(arr, logarr)
-
-# given a CTCF file and all the other parameters, init a
-# smcTranslocatorDirectional object
-# basically a wrapper for the above functions
+    return(logarr)
 
 
 def init_SMCTran(ctcf_file, SEPARATION=200, LIFETIME=300,
                  mu=3, divide_logistic=20, extend_factor=0.10,
                  do_logistic=True, monomer_size=600, mychr=21,
                  mystart=29372390, myend=31322258):
+    """Return SMCTran object for given parameters."""
     # get stall sites
     forw, rev = get_forw_rev(
         ctcf_file, mu=mu, divide_logistic=divide_logistic,
@@ -187,28 +192,13 @@ def init_SMCTran(ctcf_file, SEPARATION=200, LIFETIME=300,
     return(SMCTran)
 
 
-def calculateAverageLoop():
-    SMCTran = initModel()
-    SMCTran.steps(1000000)
-    dists = []
-    for i in range(10000):
-        SMCTran.steps(1000)
-        left, right = SMCTran.getSMCs()
-        dist = np.mean(right - left)
-        # print(dist)
-        dists.append(dist)
-    print("final dist", np.mean(dists))
-    exit()
-
-
 def do_polymer_simulation(steps, dens, stiff, folder, N, SEPARATION,
                           LIFETIME, forw, rev, save_blocks=2000, smc_steps=3,
                           no_SMC=False, randomize_SMC=False,
                           gpu_number='default', cpu_simulation=False,
-                          skip_start=100):
-    from openmmlib import Simulation
-    from polymerutils import grow_rw
-    import time
+                          skip_start=100, save_mode='joblib'):
+    """Do the polymer simulation given all the parameters."""
+
     i = 0
     SMCTran = initModel(i, N, SEPARATION, LIFETIME, forw, rev)
 
@@ -228,10 +218,10 @@ def do_polymer_simulation(steps, dens, stiff, folder, N, SEPARATION,
         if randomize_SMC:
             SMCTran.steps(500000)
         if (block % 2000 == 0) and (skip == 0):
-            print ("doing dummy steps")
+            print("doing dummy steps")
             SMCTran.steps(500000)
             skip = skip_start
-            print (skip, "blocks to skip")
+            print(skip, "blocks to skip")
 
         # initialize a polymer for the 3D simualton step.
         a = Simulation(timestep=80, thermostat=0.01)
@@ -258,14 +248,14 @@ def do_polymer_simulation(steps, dens, stiff, folder, N, SEPARATION,
         a.step = block
 
         if skip > 0:
-            print ("skipping block")
+            print("skipping block")
             a.doBlock(steps, increment=False)
             skip -= 1
 
         if skip == 0:
             a.doBlock(steps)
             block += 1
-            a.save(mode='txt')
+            a.save(mode=save_mode)
         if block == save_blocks:
             break
 
@@ -312,4 +302,18 @@ def averageContacts(contactFunction, inValues, N, **kwargs):
     with closing(mp.Pool(processes=nproc,
     initializer=init, initargs=sharedARrays_)) as p:
         p.map(worker, filenameChunks)
+def calculateAverageLoop():
+    # Return average loop length? Mirnylab function
+    SMCTran = initModel()
+    SMCTran.steps(1000000)
+    dists = []
+    for i in range(10000):
+        SMCTran.steps(1000)
+        left, right = SMCTran.getSMCs()
+        dist = np.mean(right - left)
+        # print(dist)
+        dists.append(dist)
+    print("final dist", np.mean(dists))
+    exit()
+
 """

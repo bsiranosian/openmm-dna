@@ -1,8 +1,6 @@
-import sys
 import argparse
-from os import makedirs, getenv
+from os import makedirs
 from os.path import exists
-import socket
 import numpy as np
 import pyximport; pyximport.install(
     setup_args={"include_dirs": np.get_include()})
@@ -72,6 +70,27 @@ def main():
                         default=0.10,
                         help='Extend simulation by this fraction past the start\
                         and end to reduce edge effects. Default=0.10')
+    parser.add_argument('-chr',
+                        '--chromosome',
+                        required=False,
+                        action='store',
+                        dest='chromosome',
+                        default=21,
+                        help='Chromosome to simulate')
+    parser.add_argument('-start',
+                        '--simulation_start',
+                        required=False,
+                        action='store',
+                        dest='simulation_start',
+                        default=29372390,
+                        help='Start of region to simulate.')
+    parser.add_argument('-end',
+                        '--simulation_end',
+                        required=False,
+                        action='store',
+                        dest='simulation_end',
+                        default=31322258,
+                        help='End of region to simulate.')
     parser.add_argument('-sb',
                         '--save_blocks',
                         required=False,
@@ -142,14 +161,14 @@ def main():
                         dest='randomize_SMC',
                         default=False,
                         help='Fully randomize the positions of SMCs each simulation block.\
-        Should probably up time_step along with this option.')
+        Should probably up time step along with this option.')
     parser.add_argument('-time_step',
                         '--time_step',
                         required=False,
                         action='store',
                         dest='time_step',
                         default=5000,
-                        help='Number of simulation time_step per block')
+                        help='Number of simulation time step per block')
     parser.add_argument('-skip_start',
                         '--skip_start',
                         required=False,
@@ -157,8 +176,15 @@ def main():
                         dest='skip_start',
                         default=100,
                         help='Skip this many simulation blocks at the start.')
-    # should add args for chr start, end
-    # but that can come later!!
+    parser.add_argument('-save_mode',
+                        '--save_mode',
+                        required=False,
+                        action='store',
+                        dest='save_mode',
+                        default='joblib',
+                        help='How to save conformations. Options are {joblib, txt}\
+        If joblib, saves a joblib object with conformation and extra info\
+        If txt, saves a Nx3 text file for each output conformation.')
 
     # get args
     args = parser.parse_args()
@@ -180,22 +206,25 @@ def main():
     randomize_SMC = args.randomize_SMC
     time_step = int(args.time_step)
     skip_start = int(args.skip_start)
-    # done
+    mychr = int(args.chromosome)
+    mystart = int(args.simulation_start)
+    myend = int(args.simulation_end)
+    save_mode = args.save_mode
 
     # make output folder
     if no_logistic:
-        outFolder = "{0}_S{1}_L{2}_smcX{3}_noLog".format(
+        out_folder = "{0}_S{1}_L{2}_smcX{3}_noLog".format(
             outfolder_basename, SEPARATION, LIFETIME, str(smc_steps + 1))
 
     else:
-        outFolder = "{0}_S{1}_L{2}_Mu{3}_d{4}_smcX{5}".format(
+        out_folder = "{0}_S{1}_L{2}_Mu{3}_d{4}_smcX{5}".format(
             outfolder_basename, SEPARATION, LIFETIME,
             str(int(mu)), str(int(divide_logistic)), str(smc_steps + 1))
 
-    # make the outFolder
-    if not (exists(outFolder)):
-        print('making output directory: ' + outFolder)
-        makedirs(outFolder)
+    # make the out_folder
+    if not (exists(out_folder)):
+        print('making output directory: ' + out_folder)
+        makedirs(out_folder)
 
     # ensure divide_logistic is >0
     if divide_logistic < 0:
@@ -206,10 +235,6 @@ def main():
         print('Not doing logistic scaling')
         divide_logistic = 1
 
-    # change to simulate a different chr region
-    mychr = 21
-    mystart = 29372390
-    myend = 31322258
     forw, rev = get_forw_rev(
         input_ctcf, mu=mu, divide_logistic=divide_logistic,
         extend_factor=extend_factor, do_logistic=not no_logistic,
@@ -222,11 +247,11 @@ def main():
     # This actually does a polymer simulation
     do_polymer_simulation(
         steps=time_step, dens=0.2, stiff=2,
-        folder=outFolder, N=N, SEPARATION=SEPARATION, LIFETIME=LIFETIME,
+        folder=out_folder, N=N, SEPARATION=SEPARATION, LIFETIME=LIFETIME,
         forw=forw, rev=rev, save_blocks=save_blocks, smc_steps=smc_steps,
         no_SMC=no_SMC, randomize_SMC=randomize_SMC,
         gpu_number=gpu_number, cpu_simulation=cpu_simulation,
-        skip_start=skip_start)
+        skip_start=skip_start, save_mode=save_mode)
 
 
 if __name__ == '__main__':

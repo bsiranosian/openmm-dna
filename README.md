@@ -3,12 +3,14 @@ Code for simulating 3D chromatin interactions under the loop extrusion hypothesi
 
 ## Quick start
 Given a file defining CTCF sites and a specific genomeic region, you can generate 3D stuctures with the default parameters. 
-```python src/directional_model/loop_extrusion_simulation.py -i data/example_ctcf_sites.txt -o ~/loop_extrusion_test```
+```python src/loop_extrusion_simulation.py -i data/example_ctcf_sites.txt -o ~/loop_extrusion_test```
 If you are using a computer without a cpu, specify the ```--cpu_simulation``` flag. Setting the ```--skip_start``` argument to 1 will output 3D structures quickly for testing (won't skip 100 blocks of simulation to get conformations far away from the starting conditions). 
 
 ## Prerequisites
 [openmm-polymer](https://bitbucket.org/mirnylab/openmm-polymer/overview) and prereqs for that repository. _This is probably the hardest part. Getting the package and GPU support configured can take a while._ Installing openmm is best done with [conda](http://docs.openmm.org/7.2.0/userguide/application.html#installing-openmm) I've found. 
 
+## Testing loop extruder positioning
+Before running a lengthy 3D simulation, you can test where the loop extruding factors will be on average. This gives you a good idea for how the stall sites are operating and how the scaling parameters are functioning. Argments are similar to the main simulation code. For example, ```python src/get_extruder_position.py -i data/example_ctcf_sites.txt --save_plot example_extruder_positioning.png```
 
 ## Simulation of loop extrusion 
 After configuring the proper tools, it's pretty straightforward to simulate an ensemble of 3D structures representing chromatin folding via loop extrusion. The model takes in one main data type: a list of CTCF sites defined at positions in the genome. This is a 8 column file that is defined as the overlap of CTCF binding peaks and another feature, typically RAD21 binding or CTCF motifs in the genome. The example data for the region I've been working with in K562 can be found in data/example_ctcf_sites.txt.
@@ -29,3 +31,4 @@ The file data/example_simulation.npy contains an example ensemble of structures.
 
 An example script to load the sample data and generate a figure can be found at src/example_analysis.py
 ![example contact maps](https://github.com/bsiranosian/openmm-dna/raw/master/example_maps.png)
+![example extrusion occupancy matrix](https://github.com/bsiranosian/openmm-dna/raw/master/example_extruder_positioning.png)
