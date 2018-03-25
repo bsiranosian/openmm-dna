@@ -62,8 +62,12 @@ def load_run_trajectory(in_folder, load_format,
     df_names = ['block' + str(i) + '.dat'
                 for i in range(start_ind, (num_df + start_ind))]
     df_names_full = [join(in_folder, x) for x in df_names]
-    # number of points: number of lines - 1
-    num_points = sum(1 for line in open(df_names_full[0])) - 1
+
+    if load_format == 'txt':
+        # number of points: number of lines - 1
+        num_points = sum(1 for line in open(df_names_full[0])) - 1
+    elif load_format == 'joblib':
+        num_points = joblib.load(df_names_full[0])['data'].shape[0]
     # load every nth structure if desired
     if load_n > 1:
         load_idx = [i * load_n
